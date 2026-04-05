@@ -46,18 +46,67 @@ Query → Rewrite/Expand → Hybrid Retrieve(dense + sparse(BM25)) → RRF Fusio
 
 ### 1. Hybrid Retrieval (Dense + Sparse)
 
-**Problem with Traditional RAG:**
-- Dense-only retrieval misses exact keyword matches (acronyms, technical terms)
-- "CNN" might not match "Convolutional Neural Network" in embedding space
+### Dense Retrieval (Semantic Search)
 
-**Solution:**
+- Converts text into vectors (embeddings)
+- Matches based on **meaning**, not exact words
+
+**Example:**
 ```
-Dense (semantic)  → finds "neural network" ≈ "ANN"
-Sparse (BM25)     → finds exact "backpropagation", "gradient descent"
-Combined          → best of both worlds
+Query: "How do machines learn from data?"
+Doc:   "Machine learning systems improve using data"
+```
+→ Match ✅ (same meaning)
+
+**Vector idea:**
+```
+Query → [0.21, -0.44, 0.78]
+Doc   → [0.19, -0.40, 0.80]
 ```
 
-**Impact:** +8.86% Context Recall
+**Limitation:**
+```
+Query: "JWT"
+Doc:   "JSON Web Token"
+```
+→ May miss ❌ (no exact keyword)
+
+---
+
+### Sparse Retrieval (BM25 / Keyword Search)
+
+- Uses **exact word matching**
+- Represents text as word-frequency arrays
+
+**Example:**
+```
+Vocabulary: ["apple", "banana", "cat", "dog"]
+
+Query: "apple banana"
+→ [1, 1, 0, 0]
+
+Doc1: "apple apple dog"
+→ [2, 0, 0, 1]
+
+Doc2: "banana cat"
+→ [0, 1, 1, 0]
+```
+
+**Values meaning:**
+- `0` → word not present  
+- `1` → appears once  
+- `2+` → frequency count  
+
+---
+
+### Why Hybrid?
+
+```
+Dense  → captures meaning
+Sparse → captures exact keywords
+```
+
+**Result:** Better retrieval accuracy (higher recall)
 
 ---
 
@@ -85,7 +134,7 @@ RRF Score = Σ 1/(60 + rank) for each doc across all 4 result lists
 
 ---
 
-### 3. Why k=20 → Re-rank to k=7 Increases Accuracy
+### 3. Why k=20 → Re-rank to k=5 Increases Accuracy
 
 **Traditional RAG:**
 ```
@@ -95,7 +144,7 @@ Problem: Some of top-5 may be weak matches
 
 **Advanced RAG:**
 ```
-Retrieve top-20 → Re-rank → Use top-7
+Retrieve top-20 → Re-rank → Use top-5
 ```
 
 **Why this works:**
@@ -104,7 +153,7 @@ Retrieve top-20 → Re-rank → Use top-7
 |------|--------------|------------|
 | Retrieve k=20 | Cast wider net | More candidates = less chance of missing relevant docs |
 | Re-rank | Cross-encoder scores each doc against query | Bi-encoders (retrieval) are fast but approximate. Cross-encoders are slow but precise |
-| Select top-7 | Keep only highest re-scored | More signal, less noise for the LLM |
+| Select top-5 | Keep only highest re-scored | More signal, less noise for the LLM |
 
 **Analogy:**
 - Traditional RAG = Interview 5 candidates, hire all 5
