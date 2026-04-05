@@ -185,7 +185,7 @@ Query + Doc → [CLS] ... [SEP] ... [SEP] → Similarity score
 
 ---
 
-### 5. Larger Chunk Size (1200/400 vs 1000/300)
+### 5. Larger Chunk Size
 
 **Traditional RAG:**
 - Smaller chunks → ideas get split across boundaries
@@ -227,7 +227,7 @@ Query + Doc → [CLS] ... [SEP] ... [SEP] → Similarity score
 ┌─────────────────────────────────┐
 │ Cross-Encoder Re-ranker         │
 │ Re-scores all docs precisely    │
-│ Selects top-7                   │
+│ Selects top-5                   │
 └──────┬──────────────────────────┘
        │
        ▼
@@ -265,7 +265,7 @@ export OPENAI_API_KEY=your-key
 result = advanced_rag_query(
     query="What is backpropagation?",
     k=20,              # Retrieve 20 docs per query variation
-    rerank_top_k=7,    # Re-rank and keep top 7
+    rerank_top_k=5,    # Re-rank and keep top 5
     use_rewrite=True,  # Enable query expansion
     use_rrf=True       # Enable RRF fusion
 )
