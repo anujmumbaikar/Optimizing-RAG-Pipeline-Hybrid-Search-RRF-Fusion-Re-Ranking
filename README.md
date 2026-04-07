@@ -6,8 +6,6 @@
 
 ## 📊 Performance Comparison
 
-### v1 → v2 Improvements
-
 | Metric | Traditional RAG | Advanced RAG v1 | Advanced RAG v2 | v1→v2 Change |
 |--------|-----------------|-----------------|-----------------|--------------|
 | **Context Recall** | 0.7949 | 0.8653 | **0.9861** | +13.9% |
@@ -45,8 +43,8 @@ Query → Rewrite/Expand → Hybrid Retrieve(dense + sparse(BM25)) → RRF Fusio
 | **Query Strategy** | Single query | Query expansion (4 variations) | Different phrasings retrieve different relevant docs |
 | **Fusion** | None | Reciprocal Rank Fusion | Combines strengths of multiple query results |
 | **Re-ranking** | None | Cross-encoder re-ranker | Re-scores retrieved docs with precise query-doc similarity |
-| **Chunking** | Fixed-size (1000/300) | Fixed (1200/400) → **Semantic** | Semantic chunks = complete ideas at natural boundaries |
-| **Retrieved Docs (k)** | 5-10 | 20 → re-rank to 7 | More candidates = better final selection after re-ranking |
+| **Chunking** | Fixed-size (500/200) | Fixed (1000/300) → **Semantic** | Semantic chunks = complete ideas at natural boundaries |
+| **Retrieved Docs (k)** | 5-10 | 20 → re-rank to 5 | More candidates = better final selection after re-ranking |
 
 ---
 
@@ -165,7 +163,7 @@ Retrieve top-20 → Re-rank → Use top-5
 
 **Analogy:**
 - Traditional RAG = Interview 5 candidates, hire all 5
-- Advanced RAG = Interview 20 candidates, re-evaluate carefully, hire top 7
+- Advanced RAG = Interview 20 candidates, re-evaluate carefully, hire top 5
 
 ---
 
