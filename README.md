@@ -16,7 +16,7 @@
 | **Answer Relevancy** | — | 0.9542 | **0.9670** | +1.3% |
 
 ### v2 Key Changes
-- **Semantic Chunking** instead of fixed-size chunking (1000/300)
+- **Semantic Chunking**: instead of fixed-size chunking (1000/300)
 - **Better reranker**: `BAAI/bge-reranker-v2-m3` (upgraded from ms-marco-electra-base)
 - **rerank_top_k=5** for more focused context
 - **Improved answer prompt** for structured output
