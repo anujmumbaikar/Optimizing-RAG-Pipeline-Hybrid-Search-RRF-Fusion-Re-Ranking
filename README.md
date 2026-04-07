@@ -1,17 +1,25 @@
 # Advanced RAG Pipeline
 
-> A high-performance Retrieval-Augmented Generation pipeline for technical Q&A, grounded in multi-stage retrieval theory. Combines hybrid retrieval (dense + BM25), query expansion, Reciprocal Rank Fusion (RRF), and cross-encoder re-ranking to improve retrieval precision and answer grounding. Evaluated with Ragas, showing measurable gains in context recall and faithfulness.
+> A high-performance Retrieval-Augmented Generation pipeline for technical Q&A, grounded in multi-stage retrieval theory. Combines hybrid retrieval (dense + BM25), query expansion,Semantic chunking, Reciprocal Rank Fusion (RRF), and cross-encoder re-ranking to improve retrieval precision and answer grounding. Evaluated with Ragas, showing measurable gains in context recall and faithfulness.
 
 ---
 
 ## 📊 Performance Comparison
 
-| Metric | Traditional RAG | Advanced RAG | Improvement |
-|--------|-----------------|--------------|-------------|
-| **Context Recall** | 0.7949 | **0.8653** | +8.86% |
-| **Faithfulness** | 0.9158 | **0.9776** | +6.75% |
-| **Factual Correctness** | 0.7508 | **0.7508** | Depends |
-| **Answer Relevancy** | — | **0.9542** | - |
+### v1 → v2 Improvements
+
+| Metric | Traditional RAG | Advanced RAG v1 | Advanced RAG v2 | v1→v2 Change |
+|--------|-----------------|-----------------|-----------------|--------------|
+| **Context Recall** | 0.7949 | 0.8653 | **0.9861** | +13.9% |
+| **Faithfulness** | 0.9158 | 0.9776 | **0.8633** | -11.7% |
+| **Factual Correctness** | 0.7508 | 0.7508 | **0.7717** | +2.8% |
+| **Answer Relevancy** | — | 0.9542 | **0.9670** | +1.3% |
+
+### v2 Key Changes
+- **Semantic Chunking** instead of fixed-size chunking (1000/300)
+- **Better reranker**: `BAAI/bge-reranker-v2-m3` (upgraded from ms-marco-electra-base)
+- **rerank_top_k=5** for more focused context
+- **Improved answer prompt** for structured output
 
 ---
 
@@ -37,7 +45,7 @@ Query → Rewrite/Expand → Hybrid Retrieve(dense + sparse(BM25)) → RRF Fusio
 | **Query Strategy** | Single query | Query expansion (4 variations) | Different phrasings retrieve different relevant docs |
 | **Fusion** | None | Reciprocal Rank Fusion | Combines strengths of multiple query results |
 | **Re-ranking** | None | Cross-encoder re-ranker | Re-scores retrieved docs with precise query-doc similarity |
-| **Chunk Size** | 1000 / 300 overlap | 1200 / 400 overlap | Larger chunks = complete ideas, less fragmentation |
+| **Chunking** | Fixed-size (1000/300) | Fixed (1200/400) → **Semantic** | Semantic chunks = complete ideas at natural boundaries |
 | **Retrieved Docs (k)** | 5-10 | 20 → re-rank to 7 | More candidates = better final selection after re-ranking |
 
 ---
@@ -161,7 +169,7 @@ Retrieve top-20 → Re-rank → Use top-5
 
 ---
 
-### 4. Cross-Encoder Re-ranking
+### 4. Cross-Encoder Re-ranking (BAAI/bge-reranker-v2-m3)
 
 **Retrieval (Bi-encoder):**
 ```
@@ -177,23 +185,38 @@ Query + Doc → [CLS] ... [SEP] ... [SEP] → Similarity score
               → Slower but much more accurate
 ```
 
-**Model used:** `BAAI/bge-reranker-v2-m3`
-- Trained on technical/academic content
-- Better at understanding ML/DL terminology
+**Model used:** `BAAI/bge-reranker-v2-m3` (v2 upgrade)
+- Trained on multilingual, multi-domain data including technical/academic content
+- Better at understanding nuanced ML/DL terminology and long-context relevance
 
-**Impact:** Directly improves Faithfulness (+6.75%) by surfacing more relevant context
+**Impact:** Contributes to +13.9% context recall gain (0.8653 → 0.9861)
 
 ---
 
-### 5. Larger Chunk Size
+### 5. Semantic Chunking Strategy
 
-**Traditional RAG:**
-- Smaller chunks → ideas get split across boundaries
+**Traditional RAG (Fixed-size):**
+- Arbitrary chunk boundaries split related concepts
 - "Forward pass... [cut] ...loss calculation" becomes two incomplete chunks
 
-**Advanced RAG:**
-- 1200 chars with 400 overlap → complete technical explanations stay together
-- More context per chunk → LLM gets fuller picture
+**Advanced RAG v2 (Semantic Chunking):**
+- Uses `SemanticChunker` with standard deviation breakpoint detection
+- Splits at natural semantic boundaries (when sentence embeddings diverge significantly)
+- Complete ideas stay together → higher context coherence
+
+**Tradeoff:** Semantic chunking is slower and requires embedding calls during preprocessing, but yields more coherent chunks that improve retrieval quality. Focus here was on best results, not speed.
+
+---
+
+### 6. Upgraded Re-ranker Model
+
+**Model:** `BAAI/bge-reranker-v2-m3` (upgraded from ms-marco-electra-base)
+
+**Why it matters:**
+- Trained on multilingual, multi-domain data including technical/academic content
+- Better at understanding nuanced ML/DL terminology and long-context relevance
+
+**Tradeoff:** Larger model = higher latency (~2-3x slower than ms-marco), but delivers more accurate query-doc relevance scores. Focus was on maximizing retrieval precision over speed.
 
 ---
 
