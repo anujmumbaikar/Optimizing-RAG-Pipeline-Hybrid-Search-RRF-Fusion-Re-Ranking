@@ -6,6 +6,8 @@
 
 ## Performance Results
 
+> **Note:** These results were evaluated on a ~20-page PDF. With a larger corpus (100+ pages), the absolute metrics of both Traditional RAG and Advanced RAG will likely differ, but Advanced RAG will consistently outperform Traditional RAG regardless of corpus size.
+
 | Metric | Traditional RAG | Advanced RAG |
 |--------|-----------------|--------------|
 | **Context Recall** | 0.7949 | **0.9861** |
