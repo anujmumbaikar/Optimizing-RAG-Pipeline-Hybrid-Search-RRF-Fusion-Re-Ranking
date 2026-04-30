@@ -1,41 +1,35 @@
 # Advanced RAG Pipeline
 
-> A high-performance Retrieval-Augmented Generation pipeline for technical Q&A, grounded in multi-stage retrieval theory. Combines hybrid retrieval (dense + BM25), query expansion,Semantic chunking, Reciprocal Rank Fusion (RRF), and cross-encoder re-ranking to improve retrieval precision and answer grounding. Evaluated with Ragas, showing measurable gains in context recall and faithfulness.
+> A high-performance Retrieval-Augmented Generation pipeline for technical Q&A, grounded in multi-stage retrieval theory. Combines hybrid retrieval (dense + BM25), query expansion, semantic chunking, Reciprocal Rank Fusion (RRF), and cross-encoder re-ranking to improve retrieval precision and answer grounding. Evaluated with Ragas, showing measurable gains in context recall and faithfulness.
 
 ---
 
-## 📊 Performance Comparison
+## Performance Results
 
-| Metric | Traditional RAG | Advanced RAG v1 | Advanced RAG v2 | v1→v2 Change |
-|--------|-----------------|-----------------|-----------------|--------------|
-| **Context Recall** | 0.7949 | 0.8653 | **0.9861** | +13.9% |
-| **Faithfulness** | 0.9158 | 0.9776 | **0.8633** | -11.7% |
-| **Factual Correctness** | 0.7508 | 0.7508 | **0.7717** | +2.8% |
-| **Answer Relevancy** | — | 0.9542 | **0.9670** | +1.3% |
-
-### v2 Key Changes
-- **Semantic Chunking**: instead of fixed-size chunking (1000/300)
-- **Better reranker**: `BAAI/bge-reranker-v2-m3` (upgraded from ms-marco-electra-base)
-- **rerank_top_k=5** for more focused context
-- **Improved answer prompt** for structured output
+| Metric | Traditional RAG | Advanced RAG |
+|--------|-----------------|--------------|
+| **Context Recall** | 0.7949 | **0.9861** |
+| **Faithfulness** | 0.9158 | **0.9891** |
+| **Factual Correctness** | 0.7508 | **0.8200** |
+| **Answer Relevancy** | — | **0.9034** |
 
 ---
 
-## Traditional RAG vs Advanced RAG
+## Pipeline Overview
 
-### Traditional RAG Pipeline
+### Traditional RAG
 ```
 Query → Embed → Retrieve Top-K → LLM → Answer
 ```
 
-### Advanced RAG Pipeline
+### Advanced RAG
 ```
-Query → Rewrite/Expand → Hybrid Retrieve(dense + sparse(BM25)) → RRF Fusion → Re-rank → LLM → Answer
+Query → Rewrite/Expand → Hybrid Retrieve (dense + sparse BM25) → RRF Fusion → Re-rank → LLM → Answer
 ```
 
 ---
 
-## Key Differences
+## What Changed and Why
 
 | Component | Traditional RAG | Advanced RAG | Why It Matters |
 |-----------|-----------------|--------------|----------------|
@@ -43,8 +37,8 @@ Query → Rewrite/Expand → Hybrid Retrieve(dense + sparse(BM25)) → RRF Fusio
 | **Query Strategy** | Single query | Query expansion (4 variations) | Different phrasings retrieve different relevant docs |
 | **Fusion** | None | Reciprocal Rank Fusion | Combines strengths of multiple query results |
 | **Re-ranking** | None | Cross-encoder re-ranker | Re-scores retrieved docs with precise query-doc similarity |
-| **Chunking** | Fixed-size (500/200) | Fixed (1000/300) → **Semantic** | Semantic chunks = complete ideas at natural boundaries |
-| **Retrieved Docs (k)** | 5-10 | 20 → re-rank to 5 | More candidates = better final selection after re-ranking |
+| **Chunking** | Fixed-size (1000/200) | Semantic chunking | Semantic chunks preserve complete ideas at natural boundaries |
+| **Retrieved Docs (k)** | 5 | 20 → re-rank to 5 | More candidates = better final selection after re-ranking |
 
 ---
 
@@ -52,7 +46,7 @@ Query → Rewrite/Expand → Hybrid Retrieve(dense + sparse(BM25)) → RRF Fusio
 
 ### 1. Hybrid Retrieval (Dense + Sparse)
 
-### Dense Retrieval (Semantic Search)
+#### Dense Retrieval (Semantic Search)
 
 - Converts text into vectors (embeddings)
 - Matches based on **meaning**, not exact words
@@ -79,7 +73,7 @@ Doc:   "JSON Web Token"
 
 ---
 
-### Sparse Retrieval (BM25 / Keyword Search)
+#### Sparse Retrieval (BM25 / Keyword Search)
 
 - Uses **exact word matching**
 - Represents text as word-frequency arrays
@@ -105,7 +99,7 @@ Doc2: "banana cat"
 
 ---
 
-### Why Hybrid?
+#### Why Hybrid?
 
 ```
 Dense  → captures meaning
@@ -126,7 +120,7 @@ Sparse → captures exact keywords
 Generate 4 query variations, retrieve from each, then fuse:
 
 ```
-Original:  "What is backpropagation?"
+Original:    "What is backpropagation?"
 Variation 1: "How does backpropagation work in neural networks?"
 Variation 2: "Explain the backpropagation algorithm for training"
 Variation 3: "What is the role of backpropagation in deep learning?"
@@ -153,8 +147,6 @@ Problem: Some of top-5 may be weak matches
 Retrieve top-20 → Re-rank → Use top-5
 ```
 
-**Why this works:**
-
 | Step | What Happens | Why Better |
 |------|--------------|------------|
 | Retrieve k=20 | Cast wider net | More candidates = less chance of missing relevant docs |
@@ -167,7 +159,7 @@ Retrieve top-20 → Re-rank → Use top-5
 
 ---
 
-### 4. Cross-Encoder Re-ranking (BAAI/bge-reranker-v2-m3)
+### 4. Cross-Encoder Re-ranking
 
 **Retrieval (Bi-encoder):**
 ```
@@ -183,38 +175,45 @@ Query + Doc → [CLS] ... [SEP] ... [SEP] → Similarity score
               → Slower but much more accurate
 ```
 
-**Model used:** `BAAI/bge-reranker-v2-m3` (v2 upgrade)
+**Model used:** `BAAI/bge-reranker-v2-m3`
 - Trained on multilingual, multi-domain data including technical/academic content
-- Better at understanding nuanced ML/DL terminology and long-context relevance
+- Better at understanding nuanced terminology and long-context relevance
 
-**Impact:** Contributes to +13.9% context recall gain (0.8653 → 0.9861)
+**Tradeoff:** Larger model = higher latency (~2-3x slower than lighter models), but delivers significantly more accurate query-doc relevance scores. The focus here was on maximizing retrieval precision over speed.
 
 ---
 
-### 5. Semantic Chunking Strategy
+### 5. Semantic Chunking
 
 **Traditional RAG (Fixed-size):**
-- Arbitrary chunk boundaries split related concepts
+- Splits text at arbitrary character counts
+- Can cut right through a concept mid-sentence
 - "Forward pass... [cut] ...loss calculation" becomes two incomplete chunks
 
-**Advanced RAG v2 (Semantic Chunking):**
+**Advanced RAG (Semantic Chunking):**
 - Uses `SemanticChunker` with standard deviation breakpoint detection
-- Splits at natural semantic boundaries (when sentence embeddings diverge significantly)
-- Complete ideas stay together → higher context coherence
+- Embeds each sentence and detects where meaning shifts significantly
+- Splits only at natural semantic boundaries — complete ideas stay together
 
-**Tradeoff:** Semantic chunking is slower and requires embedding calls during preprocessing, but yields more coherent chunks that improve retrieval quality. Focus here was on best results, not speed.
+**Why this improves retrieval:**
+- Each chunk represents a coherent, self-contained idea
+- LLM receives full context rather than fragments
+- Reduces the chance of a relevant chunk being split across two retrieval results
+
+**Tradeoff:** Semantic chunking requires embedding calls during preprocessing (slower than fixed-size), but yields more coherent chunks that improve both retrieval quality and final answer accuracy.
 
 ---
 
-### 6. Upgraded Re-ranker Model
+### 6. Upgraded Re-ranker Model (`BAAI/bge-reranker-v2-m3`)
 
-**Model:** `BAAI/bge-reranker-v2-m3` (upgraded from ms-marco-electra-base)
+Traditional re-rankers like `ms-marco-electra-base` were trained primarily on English web search data, which limits their effectiveness on technical, academic, or multilingual content.
 
-**Why it matters:**
-- Trained on multilingual, multi-domain data including technical/academic content
-- Better at understanding nuanced ML/DL terminology and long-context relevance
+`BAAI/bge-reranker-v2-m3` is trained on multilingual, multi-domain corpora including academic and technical text. This makes it significantly better at:
+- Understanding domain-specific terminology
+- Scoring long documents against detailed queries
+- Handling queries with multiple sub-questions
 
-**Tradeoff:** Larger model = higher latency (~2-3x slower than ms-marco), but delivers more accurate query-doc relevance scores. Focus was on maximizing retrieval precision over speed.
+**Tradeoff:** Heavier model means higher inference latency per re-ranking call, but the improvement in relevance scoring justifies the cost when answer quality is the priority.
 
 ---
 
@@ -287,8 +286,8 @@ result = advanced_rag_query(
     query="What is backpropagation?",
     k=20,              # Retrieve 20 docs per query variation
     rerank_top_k=5,    # Re-rank and keep top 5
-    use_rewrite=True,  # Enable query expansion
-    use_rrf=True       # Enable RRF fusion
+    use_rrf=True,      # Enable RRF fusion
+    n_query_variations=3
 )
 ```
 
