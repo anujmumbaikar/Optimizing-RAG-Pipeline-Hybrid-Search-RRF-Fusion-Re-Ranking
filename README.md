@@ -11,7 +11,7 @@
 | **Context Recall** | 0.7949 | **0.9861** |
 | **Faithfulness** | 0.9158 | **0.9891** |
 | **Factual Correctness** | 0.7508 | **0.8200** |
-| **Answer Relevancy** | — | **0.9034** |
+| **Answer Relevancy** | 0.8904 | **0.9034** |
 
 ---
 
